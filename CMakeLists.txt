@@ -9,9 +9,14 @@ endif()
 option(ENABLE_TESTS "Set to ON to enable building of tests" OFF)
 option(BUILD_SHARED_LIBS "Build tgbot-cpp shared/static library." OFF)
 option(BUILD_DOCUMENTATION "Build doxygen API documentation." OFF)
+option(TGBOT_CPP_ENABLE_ASYNC_API "Enable async api requests support with boost asio c++20 coroutines." OFF)
 
 # sources
-set(CMAKE_CXX_STANDARD 17)
+if(TGBOT_CPP_ENABLE_ASYNC_API)
+    set(CMAKE_CXX_STANDARD 20)
+else()
+    set(CMAKE_CXX_STANDARD 17)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(WIN32)
@@ -26,6 +31,7 @@ endif()
 include_directories(include)
 set(SRC_LIST
     src/Api.cpp
+    src/ApiBase.cpp
     src/Bot.cpp
     src/EventHandler.cpp
     src/TgException.cpp
@@ -49,6 +55,13 @@ set(SRC_LIST
     src/types/PassportElementError.cpp
     src/types/ReactionType.cpp)
 
+if(TGBOT_CPP_ENABLE_ASYNC_API)
+    list(APPEND SRC_LIST 
+        src/AsyncApi.cpp
+        src/net/AsyncHttpClient.cpp
+    )
+endif()
+
 # libs
 ## threads
 find_package(Threads REQUIRED)
@@ -70,34 +83,24 @@ endif()
 ## boost
 set(Boost_USE_MULTITHREADED ON)
 if (ENABLE_TESTS)
-    find_package(Boost 1.65.1 REQUIRED COMPONENTS unit_test_framework)
+    if (TGBOT_CPP_ENABLE_ASYNC_API)
+        find_package(Boost 1.82 COMPONENTS system unit_test_framework REQUIRED)
+    else()
+        find_package(Boost 1.65.1 COMPONENTS system unit_test_framework REQUIRED)
+    endif()
 else()
-    find_package(Boost 1.65.1 REQUIRED)
+    if (TGBOT_CPP_ENABLE_ASYNC_API)
+        find_package(Boost 1.82 COMPONENTS system REQUIRED)
+    else()
+        find_package(Boost 1.65.1 COMPONENTS system REQUIRED)
+    endif()
 endif()
-
-# Check if Boost::system target exists (compatible with new and old versions)
-if(TARGET Boost::system)
-    set(BOOST_SYSTEM_TARGET Boost::system)
-    message(STATUS "Using Boost::system target")
-else()
-    set(BOOST_SYSTEM_TARGET "")
-    message(STATUS "Boost::system not available, using header-only")
-endif()
-
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR_RELEASE})
 if(NOT Boost_USE_STATIC_LIBS)
     add_definitions(-DBOOST_ALL_DYN_LINK)
 endif()
 add_definitions(-DBOOST_BIND_GLOBAL_PLACEHOLDERS)
-
-set(LIB_LIST
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${ZLIB_LIBRARIES}
-        ${OPENSSL_LIBRARIES}
-        ${Boost_LIBRARIES}
-        ${BOOST_SYSTEM_TARGET}
-)
 
 set(LIB_LIST
     ${CMAKE_THREAD_LIBS_INIT}
@@ -142,10 +145,6 @@ if (ENABLE_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif()
-#add_subdirectory(samples/echobot-webhook-server)
-#add_subdirectory(samples/inline-keyboard)
-#add_subdirectory(samples/reply-keyboard)
-
 
 # Documentation
 if(BUILD_DOCUMENTATION)
@@ -160,4 +159,8 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_definitions(-DTGBOT_DLL)
+endif()
+
+if(TGBOT_CPP_ENABLE_ASYNC_API)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_ASYNC_API)
 endif()

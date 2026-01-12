@@ -11,6 +11,9 @@ namespace TgBot {
 Bot::Bot(std::string token, const HttpClient& httpClient, const std::string& url)
     : _token(std::move(token))
     , _api(_token, httpClient, url)
+#ifdef ENABLE_ASYNC_API
+    , _asyncApi(_token, AsyncHttpClient(), url)
+#endif
     , _eventBroadcaster(std::make_unique<EventBroadcaster>())
     , _eventHandler(getEvents()) {
 }

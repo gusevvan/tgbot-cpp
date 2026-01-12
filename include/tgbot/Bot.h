@@ -2,6 +2,9 @@
 #define TGBOT_CPP_BOT_H
 
 #include "tgbot/Api.h"
+#ifdef ENABLE_ASYNC_API
+    #include "tgbot/AsyncApi.h"
+#endif
 #include "tgbot/EventHandler.h"
 
 #include <memory>
@@ -37,6 +40,12 @@ public:
         return _api;
     }
 
+#ifdef ENABLE_ASYNC_API
+    inline const AsyncApi& getAsyncApi() const {
+        return _asyncApi;
+    }
+#endif
+
     /**
      * @return Object which holds all event listeners.
      */
@@ -56,6 +65,9 @@ private:
 
     const std::string _token;
     const Api _api;
+#ifdef ENABLE_ASYNC_API
+    const AsyncApi _asyncApi;
+#endif
     std::unique_ptr<EventBroadcaster> _eventBroadcaster;
     const EventHandler _eventHandler;
 };
