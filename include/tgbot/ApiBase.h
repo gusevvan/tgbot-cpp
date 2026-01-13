@@ -39,16 +39,15 @@
 
 namespace TgBot {
 
-class Bot;
-
 class TGBOT_API ApiBase {
-
+    
 friend class Bot;
-
+    
 protected:
-    ApiBase(std::string token, const std::string& url);
 
     typedef std::shared_ptr<std::vector<std::string>> StringArrayPtr;
+
+    ApiBase(std::string token, const std::string& url);
 
     std::vector<HttpReqArg> getUpdatesArgs(std::int32_t offset,
                                          std::int32_t limit,
@@ -707,6 +706,16 @@ protected:
     const std::string _token;
     const TgTypeParser _tgTypeParser;
     const std::string _url;
+
+    /**
+        * @brief Maximum number of API requests retries before giving up and throwing an exception
+    */
+    constexpr static int requestMaxRetries = 3;
+    /**
+        * @brief Backoff duration between API requests retries, in seconds
+    */
+    constexpr static int requestBackoff = 1;
+
 };
 
 }

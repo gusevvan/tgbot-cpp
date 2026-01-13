@@ -1,5 +1,8 @@
 #include "tgbot/AsyncApi.h"
 
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/use_awaitable.hpp>
+
 #include <chrono>
 #include <thread>
 
@@ -82,28 +85,43 @@ net::awaitable<boost::property_tree::ptree> AsyncApi::sendRequest(const std::str
     url += "/";
     url += method;
 
-    std::string serverResponse = co_await _httpClient.makeRequest(url, args);
-    
-    if (!serverResponse.compare(0, 6, "<html>")) {
-        std::string message = "tgbot-cpp library have got html page instead of json response. Maybe you entered wrong bot token.";
-        throw TgException(message, TgException::ErrorCode::HtmlResponse);
-    }
+    int retries = 0;
+    while (1) 
+    {
+        try {
+            std::string serverResponse = co_await _httpClient.makeRequest(url, args);
+            
+            if (!serverResponse.compare(0, 6, "<html>")) {
+                std::string message = "tgbot-cpp library have got html page instead of json response. Maybe you entered wrong bot token.";
+                throw TgException(message, TgException::ErrorCode::HtmlResponse);
+            }
 
-    boost::property_tree::ptree result; 
-    try {
-        result = _tgTypeParser.parseJson(serverResponse);
-    } catch (boost::property_tree::ptree_error& e) {
-        std::string message = "tgbot-cpp library can't parse json response. " + std::string(e.what());
-        throw TgException(message, TgException::ErrorCode::InvalidJson);
-    }
+            boost::property_tree::ptree result; 
+            try {
+                result = _tgTypeParser.parseJson(serverResponse);
+            } catch (boost::property_tree::ptree_error& e) {
+                std::string message = "tgbot-cpp library can't parse json response. " + std::string(e.what());
+                throw TgException(message, TgException::ErrorCode::InvalidJson);
+            }
 
-    if (result.get<bool>("ok", false)) {
-        co_return result.get_child("result");
-    } else {
-        std::string message = result.get("description", "");
-        size_t errorCode = result.get<size_t>("error_code", 0u);
+            if (result.get<bool>("ok", false)) {
+                co_return result.get_child("result");
+            } else {
+                std::string message = result.get("description", "");
+                size_t errorCode = result.get<size_t>("error_code", 0u);
 
-        throw TgException(message, static_cast<TgException::ErrorCode>(errorCode));
+                throw TgException(message, static_cast<TgException::ErrorCode>(errorCode));
+            }
+        } catch (...) {
+            if ((requestMaxRetries >= 0) && (retries == requestMaxRetries)) {
+                throw;
+            } else {
+                retries++;
+            }
+        }
+        net::steady_timer timer{co_await net::this_coro::executor};
+        timer.expires_after(std::chrono::seconds(requestBackoff));
+        co_await timer.async_wait(net::use_awaitable);
     }
 }
 

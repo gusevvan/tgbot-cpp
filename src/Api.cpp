@@ -1135,7 +1135,6 @@ boost::property_tree::ptree Api::sendRequest(const std::string& method, const st
     url += "/";
     url += method;
 
-    int requestRetryBackoff = _httpClient.getRequestBackoff();
     int retries = 0;
     while (1)
     {
@@ -1165,11 +1164,10 @@ boost::property_tree::ptree Api::sendRequest(const std::string& method, const st
                 throw TgException(message, static_cast<TgException::ErrorCode>(errorCode));
             }
         } catch (...) {
-            int max_retries = _httpClient.getRequestMaxRetries();
-            if ((max_retries >= 0) && (retries == max_retries)) {
+            if ((requestMaxRetries >= 0) && (retries == requestMaxRetries)) {
                 throw;
             } else {
-                std::this_thread::sleep_for(std::chrono::seconds(requestRetryBackoff));
+                std::this_thread::sleep_for(std::chrono::seconds(requestBackoff));
                 retries++;
                 continue;
             }

@@ -21,14 +21,12 @@ class TGBOT_API AsyncHttpClient {
 public:
     AsyncHttpClient();
 
-    http::request<http::string_body> generateBeastRequest(const Url& url, const std::vector<HttpReqArg>& args) const;
     net::awaitable<std::string> makeRequest(const Url& url, const std::vector<HttpReqArg>& args) const;
-
+    
 private:
     const HttpParser _httpParser;
 
-    int requestMaxRetries = 3;
-    int requestBackoff = 1;
+    http::request<http::string_body> generateBeastRequest(const Url& url, const std::vector<HttpReqArg>& args) const;
 };
 
 }
