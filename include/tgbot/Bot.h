@@ -2,7 +2,7 @@
 #define TGBOT_CPP_BOT_H
 
 #include "tgbot/Api.h"
-#ifdef ENABLE_ASYNC_API
+#ifdef _ENABLE_ASYNC_API
     #include "tgbot/AsyncApi.h"
 #endif
 #include "tgbot/EventHandler.h"
@@ -40,7 +40,7 @@ public:
         return _api;
     }
 
-#ifdef ENABLE_ASYNC_API
+#ifdef _ENABLE_ASYNC_API
     inline const AsyncApi& getAsyncApi() const {
         return _asyncApi;
     }
@@ -65,7 +65,7 @@ private:
 
     const std::string _token;
     const Api _api;
-#ifdef ENABLE_ASYNC_API
+#ifdef _ENABLE_ASYNC_API
     const AsyncApi _asyncApi;
 #endif
     std::unique_ptr<EventBroadcaster> _eventBroadcaster;

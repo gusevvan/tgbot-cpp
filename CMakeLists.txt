@@ -162,5 +162,5 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 if(TGBOT_CPP_ENABLE_ASYNC_API)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_ASYNC_API)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC _ENABLE_ASYNC_API)
 endif()
